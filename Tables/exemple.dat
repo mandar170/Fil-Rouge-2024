@@ -1,0 +1,10 @@
+# Ceci est un fichier d'exemple simple
+# Définition du séparateur :
+;
+# Nombre de champs (le premier champ est la clé) :
+3
+# Nom des champs (le premier champ est la clé) :
+Matière;Bâtiment 1;Bâtiment 2
+# Données :
+AAP;E;B7
+Anglais;E

@@ -1,0 +1,10 @@
+# dans ce fichier, les accents aigus sont encodés en UTF-8 de deux façons différentes
+# Cf. https://unix.stackexchange.com/questions/90100/convert-between-unicode-normalization-forms-on-the-unix-command-line
+# Cf. https://stackoverflow.com/questions/7710448/anyone-can-explain-the-same-thing-issue-of-utf-8
+# La commande hd <fic> permet de voir les octets
+# La commande uconv -x any-nfc <fic> résout le pb. 
+:
+2
+mot:def
+zéphyrine:z
+zéphyrine:z
