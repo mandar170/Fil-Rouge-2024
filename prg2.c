@@ -80,7 +80,7 @@ t_hashtable* create_hashtable(int nbSlots, const char* hashFunctionName) {
     t_hashtable* table = (t_hashtable*)malloc(sizeof(t_hashtable));
     assert(table != NULL);
     table->nbSlots = nbSlots;
-    table->slots = (t_list*)calloc(nbSlots, sizeof(t_list));
+    table->slots = (t_list*)calloc(nbSlots, sizeof(t_list));  // Allouer des pointeurs NULL pour chaque alvéole
     assert(table->slots != NULL);
     table->hashFunction = strdup(hashFunctionName);
     return table;
@@ -118,23 +118,16 @@ void insert_hashtable(t_hashtable* table, t_tuple tuple, int (*hash_function)(co
     int index = hash_function(tuple.key, table->nbSlots);
     printf("Insertion de la clé '%s' à l'indice %d\n", tuple.key, index);
 
-    // Créer un nouveau nœud
+    // Créer un nouveau nœud pour la liste chaînée
     t_node* new_node = (t_node*)malloc(sizeof(t_node));
     assert(new_node != NULL);
     new_node->data = tuple;
-    new_node->pNext = table->slots[index];
+    new_node->pNext = table->slots[index];  // Ajouter à l'en-tête de la liste
 
-    // Insérer en tête de liste
+    // Insérer le nœud à l'indice calculé
     table->slots[index] = new_node;
-
-    // Afficher le contenu de l'alvéole
-    printf("Contenu de l'alvéole %d après insertion :\n", index);
-    t_node* current = table->slots[index];
-    while (current != NULL) {
-        printf("  - Clé : '%s'\n", current->data.key);
-        current = current->pNext;
-    }
 }
+
 
 // Fonction pour rechercher un tuple par clé
 t_value* search_hashtable(t_hashtable* table, const char* key, int (*hash_function)(const char*, int), int* comparisons) {
@@ -242,7 +235,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Paramètres
     const char* filename = argv[1];
     int nbSlots = atoi(argv[2]);
 
