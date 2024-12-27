@@ -19,10 +19,7 @@ t_field create_field(const char* valeur) {
         return NULL;
     }
     t_field field = (t_field)malloc((len + 1) * sizeof(char)); // Allocation dynamique, len+1 pour le caractère '\0'
-    if (field == NULL) {
-        printf("Erreur d'allocation mémoire");
-        exit(EXIT_FAILURE);
-    }
+    assert(field!=NULL); 
     strcpy(field, valeur); // Copier la chaîne dans le champ alloué
     return field;
 }
@@ -46,10 +43,7 @@ t_value create_value(size_t field_count, const char* fields[]) {
     if (field_count == 0) return NULL;
     // Allouer de la mémoire pour les pointeurs vers les champs
     t_value value = (t_value)malloc(field_count * sizeof(t_field));
-    if (value == NULL) {
-        printf("Erreur d'allocation mémoire pour la valeur");
-        exit(EXIT_FAILURE);
-    }
+    assert(value!=NULL); 
     // Allouer chaque champ individuellement
     for (size_t i = 0; i < field_count; i++) {
         value[i] = create_field(fields[i]);
@@ -91,19 +85,12 @@ typedef struct {
 t_metadata* create_metadata(char sep, int nbFields, const char* fieldNames[]) {
     if (nbFields <= 0) return NULL;
     t_metadata* metadata = (t_metadata*)malloc(sizeof(t_metadata));
-    if (metadata == NULL) {
-        printf("Erreur d'allocation mémoire pour les métadonnées");
-        exit(EXIT_FAILURE);
-    }
+    assert(metadata!=NULL); 
     metadata->sep = sep;
     metadata->nbFields = nbFields;
     // Allouer dynamiquement le tableau fieldNames
     metadata->fieldNames = (t_field*)malloc(nbFields * sizeof(t_field));
-    if (metadata->fieldNames == NULL) {
-        printf("Erreur d'allocation mémoire pour fieldNames");
-        free(metadata);
-        exit(EXIT_FAILURE);
-    }
+    assert(metadata->fieldNames !=NULL); 
     // Allouer et copier chaque champ du tableau fieldNames
     for (int i = 0; i < nbFields; i++) {
         metadata->fieldNames[i] = create_field(fieldNames[i]);
@@ -122,3 +109,18 @@ void free_metadata(t_metadata* metadata) {
     free(metadata);  // Libérer la structure des métadonnées
 }
 
+// Maillon
+typedef struct node {
+    t_tuple data;
+    struct node *pNext;
+} t_node;
+
+//Liste chainée
+typedef t_node * t_list;
+
+//Table de hachage 
+typedef struct {
+   char * hashfunction; // nom de la fonction de hachage
+   int nbSlots; // nombre d’alvéoles
+   t_list * slots; // taille définie à l'exécution
+} t_hashtable;
