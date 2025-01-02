@@ -29,6 +29,7 @@ char* readLine(FILE* file) {
     size_t len = strlen(buffer);
     if (buffer[len - 1] == '\n') buffer[len - 1] = '\0';
     char* line = malloc(len + 1);
+    assert(line!=NULL); 
     strcpy(line, buffer);
     return line;
 }
@@ -53,7 +54,9 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
     }
 
     t_tupletable* table = malloc(sizeof(t_tupletable));
+    assert(table!=NULL); 
     table->tuples = malloc(10 * sizeof(t_tuple));
+    assert(table->tuples!=NULL); 
     table->sizeTab = 10;
     table->nbTuples = 0;
 
@@ -80,6 +83,7 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
         if (metadata->nbFields == 0) {
             metadata->nbFields = atoi(line);
             metadata->fieldNames = malloc(metadata->nbFields * sizeof(char*));
+            assert(metadata->fieldNames !=NULL); 
             free(line);
             continue;
         }
@@ -109,6 +113,7 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
 
         // Lecture des valeurs
         tuple->value = malloc((metadata->nbFields - 1) * sizeof(char*));
+        assert(tuple->value !=NULL); 
         for (int i = 0; i < metadata->nbFields - 1; i++) {
             token = strtok(NULL, &metadata->sep);
             tuple->value[i] = allocateField(token ? token : "");
