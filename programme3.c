@@ -288,8 +288,6 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
 }
 
 // Insertion d'un tuple dans la table de hachage
-// Insertion d'un tuple dans la table de hachage
-// Insertion d'un tuple dans la table de hachage
 void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_metadata* metadata, hashFunction hashFunc) {
     unsigned int index = hashFunc(tuple->key, nbSlots);  // Correction ici
     t_node* current = table->slots[index];
