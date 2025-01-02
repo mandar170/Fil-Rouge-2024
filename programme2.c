@@ -118,7 +118,7 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
 
     char* line;
     while ((line = readLine(file)) != NULL) {
-        if (line[0] == '#') {
+        if (line[0] == '#' && strlen(line) > 1) {
             free(line);
             continue;
         }

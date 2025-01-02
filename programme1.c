@@ -68,7 +68,7 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
     char* line;
     while ((line = readLine(file)) != NULL) {
         // Ignore les commentaires
-        if (line[0] == '#') {
+        if (line[0] == '#' && strlen(line) > 1) {
             free(line);
             continue;
         }
