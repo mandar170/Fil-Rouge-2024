@@ -38,7 +38,7 @@ void searchKeyHash(t_hashtable* table, t_metadata* metadata, const char* key, in
 unsigned int hashFunction1(const char* key, int nbSlots);
 unsigned int hashFunction2(const char* key, int nbSlots);
 void freeHashTable(t_hashtable* table, t_metadata* metadata);
-void saveHashTableToFile(t_hashtable* table, const char* outputFile, t_metadata* metadata);
+void saveHashTableToFile(t_hashtable* table, FILE* output, t_metadata* metadata);
 void afficherAide();
 
 // Fonction principale
@@ -72,12 +72,7 @@ int main(int argc, char* argv[]) {
                 return EXIT_FAILURE;
             }
         } else if (strcmp(argv[i], "-help") == 0) {
-            printf("Usage : ./programme3 [options]\n");
-            printf("Options :\n");
-            printf("  -i<file>   : Fichier contenant les tuples à indexer (optionnel).\n");
-            printf("  -o<file>   : Fichier à créer avec la table de hachage (optionnel).\n");
-            printf("  -s<num>    : Nombre d'alvéoles dans la table de hachage (obligatoire).\n");
-            printf("  -h<num>    : Choix de la fonction de hachage (obligatoire, 1 ou 2).\n");
+            afficherAide();
             return 0;
         } else {
             fprintf(stderr, "Erreur : argument inconnu %s\n", argv[i]);
@@ -113,18 +108,25 @@ int main(int argc, char* argv[]) {
     t_hashtable* table = parseFileHash(input, &metadata, nbSlots, hashFunc);
     if (inputFile) fclose(input);
 
-    // Sauvegarde ou affichage de la table
-    if (outputFile) {
-        saveHashTableToFile(table, outputFile, &metadata);
-    } else {
-        printf("%d mots indexés dans %d alvéoles\n", table->nbTuples, nbSlots);
-        // Ajoutez ici l'affichage détaillé si nécessaire
+    // Définir la sortie
+    FILE* output = outputFile ? fopen(outputFile, "w") : stdout;
+    if (outputFile && !output) {
+        perror("Erreur d'ouverture du fichier de sortie");
+        freeHashTable(table, &metadata);
+        return EXIT_FAILURE;
     }
+
+    // Sauvegarde ou affichage de la table
+    saveHashTableToFile(table, output, &metadata);
+
+    // Si un fichier de sortie a été utilisé, le fermer
+    if (outputFile) fclose(output);
 
     // Libération de la mémoire
     freeHashTable(table, &metadata);
     return EXIT_SUCCESS;
 }
+
 
 // Fonction de hachage 1
 unsigned int hashFunction1(const char* key, int nbSlots) {
@@ -171,10 +173,7 @@ char* allocateField(const char* source) {
 // Analyse du fichier et remplissage de la table de hachage
 t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, hashFunction hashFunc) {    
     FILE* file = inputFile;
-    if (!file) {
-        perror("Erreur d'ouverture de fichier");
-        exit(EXIT_FAILURE);
-    }
+    int isManualInput = (file == stdin); // Vérifier si l'entrée est manuelle
 
     t_hashtable* table = malloc(sizeof(t_hashtable));
     assert(table != NULL);
@@ -190,16 +189,24 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
     char* line;
     int step = 0; // Étape de traitement (0 : séparateur, 1 : nbFields, 2 : noms des champs, 3+ : données)
 
-    while ((line = readLine(file)) != NULL) {
-        // Ignorer les lignes de commentaires (commençant par # mais contenant plus que le séparateur)
-        if (line[0] == '#' && strlen(line) > 1) {
-            free(line);
-            continue;
+    while (1) {
+        if (isManualInput) {
+            if (step == 0) {
+                printf("Entrez le séparateur à utiliser (un seul caractère) : ");
+            } else if (step == 1) {
+                printf("Entrez le nombre de champs dans chaque enregistrement : ");
+            } else if (step == 2) {
+                printf("Entrez les noms des champs, séparés par le séparateur : ");
+            } else {
+                printf("Entrez une nouvelle ligne de données (clé et champs séparés par le séparateur), ou une ligne vide pour terminer : ");
+            }
         }
 
-        // Étape 0 : Détection du séparateur
+        line = readLine(file);
+        if (!line) break; // Fin du fichier ou ligne vide
+
         if (step == 0) {
-            if (strlen(line) == 1) { // Une ligne avec un seul caractère
+            if (strlen(line) == 1) {
                 metadata->sep = line[0];
                 printf("Séparateur détecté : '%c'\n", metadata->sep);
                 free(line);
@@ -208,17 +215,18 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
             } else {
                 fprintf(stderr, "Erreur : séparateur invalide (doit être un caractère unique).\n");
                 free(line);
+                if (isManualInput) continue;
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
         }
 
-        // Étape 1 : Lecture du nombre de champs
         if (step == 1) {
             metadata->nbFields = atoi(line);
             if (metadata->nbFields <= 0) {
                 fprintf(stderr, "Erreur : nombre de champs invalide : %s\n", line);
                 free(line);
+                if (isManualInput) continue;
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
@@ -233,7 +241,6 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
             continue;
         }
 
-        // Étape 2 : Lecture des noms des champs
         if (step == 2) {
             char* token = strtok(line, &metadata->sep);
             for (int i = 0; i < metadata->nbFields; i++) {
@@ -253,12 +260,15 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
             continue;
         }
 
-        // Étape 3+ : Lecture et insertion des données
         if (step >= 3) {
+            if (strlen(line) == 0) { // Ligne vide pour terminer l'entrée
+                free(line);
+                break;
+            }
+
             t_tuple tuple;
             char* token = strtok(line, &metadata->sep);
 
-            // Lire la clé
             if (token == NULL) {
                 fprintf(stderr, "Erreur : ligne mal formatée, clé manquante.\n");
                 free(line);
@@ -266,7 +276,6 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
             }
             tuple.key = allocateField(token);
 
-            // Lire les valeurs associées
             tuple.definitions = malloc(sizeof(char**));
             assert(tuple.definitions != NULL);
             tuple.definitions[0] = malloc((metadata->nbFields - 1) * sizeof(char*));
@@ -277,13 +286,15 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
             }
             tuple.nbDefinitions = 1;
 
-            // Insérer le tuple dans la table
             insertTupleHash(table, &tuple, nbSlots, metadata, hashFunc);
             free(line);
         }
     }
 
-    fclose(file);
+    if (isManualInput) {
+        printf("Fin de l'entrée manuelle.\n");
+    }
+
     return table;
 }
 
@@ -382,37 +393,32 @@ void freeHashTable(t_hashtable* table, t_metadata* metadata) {
     free(table);
 }
 
-void saveHashTableToFile(t_hashtable* table, const char* outputFile, t_metadata* metadata) {
-    FILE* file = fopen(outputFile, "w");
-    if (!file) {
-        perror("Erreur d'ouverture du fichier de sortie");
-        exit(EXIT_FAILURE);
-    }
-
+void saveHashTableToFile(t_hashtable* table, FILE* output, t_metadata* metadata) {
     // Sauvegarder le séparateur
-    fprintf(file, "%c\n", metadata->sep);
+    fprintf(output, "%c\n", metadata->sep);
+
+    // Sauvegarder le nombre de champs
+    fprintf(output, "%d\n", metadata->nbFields);
 
     // Sauvegarder les noms de champs
     for (int i = 0; i < metadata->nbFields; i++) {
-        fprintf(file, "%s%c", metadata->fieldNames[i], (i == metadata->nbFields - 1) ? '\n' : metadata->sep);
+        fprintf(output, "%s%c", metadata->fieldNames[i], (i == metadata->nbFields - 1) ? '\n' : metadata->sep);
     }
 
     // Sauvegarder les tuples
     for (int i = 0; i < table->nbSlots; i++) {
         t_node* current = table->slots[i];
         while (current) {
-            fprintf(file, "%s", current->data.key);
+            fprintf(output, "%s", current->data.key);
             for (int d = 0; d < current->data.nbDefinitions; d++) {
                 for (int j = 0; j < metadata->nbFields - 1; j++) {
-                    fprintf(file, "%c%s", metadata->sep, current->data.definitions[d][j]);
+                    fprintf(output, "%c%s", metadata->sep, current->data.definitions[d][j]);
                 }
-                fprintf(file, "\n");
+                fprintf(output, "\n");
             }
             current = current->next;
         }
     }
-
-    fclose(file);
 }
 
 void afficherAide() {

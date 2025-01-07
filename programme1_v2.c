@@ -46,6 +46,13 @@ char* allocateField(const char* source) {
     return field;
 }
 
+// Fonction pour comparer deux tuples par clé
+int compareTuples(const void* a, const void* b) {
+    const t_tuple* t1 = (const t_tuple*)a;
+    const t_tuple* t2 = (const t_tuple*)b;
+    return strcmp(t1->key, t2->key);
+}
+
 // Fonction pour analyser un fichier
 t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
     FILE* file = fopen(filename, "r");
@@ -124,7 +131,12 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
         free(line);
     }
 
+    // Après avoir terminé de lire toutes les lignes du fichier
     fclose(file);
+
+    // Trier les tuples par ordre lexicographique des clés
+    qsort(table->tuples, table->nbTuples, sizeof(t_tuple), compareTuples);
+
     return table;
 }
 
@@ -138,7 +150,7 @@ void searchKey(t_tupletable* table, t_metadata* metadata, const char* key) {
             printf("mot : %s\n", table->tuples[i].key);
             for (int j = 0; j < metadata->nbFields - 1; j++) {
                 printf("%s : %s\n", metadata->fieldNames[j + 1],
-                       strlen(table->tuples[i].value[j]) > 0 ? table->tuples[i].value[j] : "X");
+                    strlen(table->tuples[i].value[j]) > 0 ? table->tuples[i].value[j] : "X");
             }
             return;
         }
