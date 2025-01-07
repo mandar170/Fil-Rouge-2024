@@ -205,6 +205,12 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
         line = readLine(file);
         if (!line) break; // Fin du fichier ou ligne vide
 
+        // Ignore les commentaires
+        if (line[0] == '#' && strlen(line) > 1) {
+            free(line);
+            continue;
+        }
+
         if (step == 0) {
             if (strlen(line) == 1) {
                 metadata->sep = line[0];
