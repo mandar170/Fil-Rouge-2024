@@ -61,16 +61,16 @@ void free_value(t_value value, size_t field_count) {
 
 //TUPLE
 typedef struct {
-  t_key key;
-  t_value value;
+    t_key key;
+    t_value value;
 } t_tuple;
 
 //METADONNEES
 /* Structure sans malloc
 typedef struct {
-  char sep;
-  int nbFields;
-  t_field fieldNames[MAXFIELDS];
+    char sep;
+    int nbFields;
+    t_field fieldNames[MAXFIELDS];
 } t_metadata;
 */
 
@@ -120,7 +120,7 @@ typedef t_node * t_list;
 
 //Table de hachage 
 typedef struct {
-   char * hashfunction; // nom de la fonction de hachage
-   int nbSlots; // nombre d’alvéoles
-   t_list * slots; // taille définie à l'exécution
+    char * hashfunction; // nom de la fonction de hachage
+    int nbSlots; // nombre d’alvéoles
+    t_list * slots; // taille définie à l'exécution
 } t_hashtable;

@@ -3,25 +3,70 @@
 #include <string.h>
 #include <assert.h>
 
-// Définition des structures
+// Structures
 typedef struct {
-    char* key;       // Clé dynamique
-    char** value;    // Tableau dynamique de champs
+    char* key;
+    char** value;
 } t_tuple;
 
 typedef struct {
-    t_tuple* tuples; // Tableau dynamique de tuples
-    int sizeTab;     // Taille allouée
-    int nbTuples;    // Nombre de tuples enregistrés
+    t_tuple* tuples;
+    int sizeTab;
+    int nbTuples;
 } t_tupletable;
 
 typedef struct {
-    char sep;        // Séparateur
-    int nbFields;    // Nombre de champs
-    char** fieldNames; // Tableau dynamique pour les noms de champs
+    char sep;
+    int nbFields;
+    char** fieldNames;
 } t_metadata;
 
-// Fonction pour lire une ligne
+// Prototypes
+char* readLine(FILE* file);
+char* allocateField(const char* source);
+t_tupletable* parseFile(const char* filename, t_metadata* metadata);
+void searchKey(t_tupletable* table, t_metadata* metadata, const char* key);
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    const char* filename = argv[1];
+    t_metadata metadata;
+    t_tupletable* table = parseFile(filename, &metadata);
+
+    printf("%d mots indexés\n", table->nbTuples);
+    printf("Saisir les mots recherchés :\n");
+
+    char key[1000];
+    while (fgets(key, sizeof(key), stdin)) {
+        size_t len = strlen(key);
+        if (key[len - 1] == '\n') key[len - 1] = '\0';
+        if (strlen(key) == 0) break;
+        searchKey(table, &metadata, key);
+    }
+
+    // Libération mémoire
+    for (int i = 0; i < table->nbTuples; i++) {
+        free(table->tuples[i].key);
+        for (int j = 0; j < metadata.nbFields - 1; j++) {
+            free(table->tuples[i].value[j]);
+        }
+        free(table->tuples[i].value);
+    }
+    free(table->tuples);
+    for (int i = 0; i < metadata.nbFields; i++) {
+        free(metadata.fieldNames[i]);
+    }
+    free(metadata.fieldNames);
+    free(table);
+
+    return 0;
+}
+
+// Lecture d'une ligne
 char* readLine(FILE* file) {
     char buffer[1000];
     if (fgets(buffer, sizeof(buffer), file) == NULL) {
@@ -35,18 +80,15 @@ char* readLine(FILE* file) {
     return line;
 }
 
-// Fonction pour allouer dynamiquement un champ
+// Allocation dynamique d'un champ
 char* allocateField(const char* source) {
     char* field = malloc(strlen(source) + 1);
-    if (!field) {
-        perror("Erreur d'allocation mémoire pour un champ");
-        exit(EXIT_FAILURE);
-    }
+    assert(field!=NULL);
     strcpy(field, source);
     return field;
 }
 
-// Fonction pour analyser un fichier
+// Analyse fichier et remplissage de la table
 t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -67,20 +109,21 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
 
     char* line;
     while ((line = readLine(file)) != NULL) {
+
         // Ignore les commentaires
         if (line[0] == '#' && strlen(line) > 1) {
             free(line);
             continue;
         }
 
-        // Définition du séparateur
+        //  Séparateur
         if (strlen(line) == 1 && metadata->sep == '\0') {
             metadata->sep = line[0];
             free(line);
             continue;
         }
 
-        // Définition du nombre de champs
+        // Nombre de champs
         if (metadata->nbFields == 0) {
             metadata->nbFields = atoi(line);
             metadata->fieldNames = malloc(metadata->nbFields * sizeof(char*));
@@ -89,7 +132,7 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
             continue;
         }
 
-        // Définition des noms des champs
+        // Noms des champs
         if (metadata->fieldNames[0] == NULL) {
             char* token = strtok(line, &metadata->sep);
             for (int i = 0; i < metadata->nbFields; i++) {
@@ -128,7 +171,7 @@ t_tupletable* parseFile(const char* filename, t_metadata* metadata) {
     return table;
 }
 
-// Fonction pour rechercher une clé
+// Rechercher une clé
 void searchKey(t_tupletable* table, t_metadata* metadata, const char* key) {
     int comparisons = 0;
     for (int i = 0; i < table->nbTuples; i++) {
@@ -144,44 +187,4 @@ void searchKey(t_tupletable* table, t_metadata* metadata, const char* key) {
         }
     }
     printf("Recherche de %s : échec ! nb comparaisons : %d\n", key, comparisons);
-}
-
-// Fonction principale
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
-    const char* filename = argv[1];
-    t_metadata metadata;
-    t_tupletable* table = parseFile(filename, &metadata);
-
-    printf("%d mots indexés\n", table->nbTuples);
-    printf("Saisir les mots recherchés :\n");
-
-    char key[1000];
-    while (fgets(key, sizeof(key), stdin)) {
-        size_t len = strlen(key);
-        if (key[len - 1] == '\n') key[len - 1] = '\0';
-        if (strlen(key) == 0) break;
-        searchKey(table, &metadata, key);
-    }
-
-    // Libération de la mémoire
-    for (int i = 0; i < table->nbTuples; i++) {
-        free(table->tuples[i].key);
-        for (int j = 0; j < metadata.nbFields - 1; j++) {
-            free(table->tuples[i].value[j]);
-        }
-        free(table->tuples[i].value);
-    }
-    free(table->tuples);
-    for (int i = 0; i < metadata.nbFields; i++) {
-        free(metadata.fieldNames[i]);
-    }
-    free(metadata.fieldNames);
-    free(table);
-
-    return 0;
 }

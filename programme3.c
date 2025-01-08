@@ -3,11 +3,11 @@
 #include <string.h>
 #include <assert.h>
 
-// Définition des structures
+// Structures
 typedef struct {
-    char* key;           // Clé dynamique
-    char*** definitions; // Tableau dynamique de tableaux dynamiques pour les définitions
-    int nbDefinitions;   // Nombre d'occurrences du mot
+    char* key;
+    char*** definitions;
+    int nbDefinitions;
 } t_tuple;
 
 typedef struct node {
@@ -16,15 +16,15 @@ typedef struct node {
 } t_node;
 
 typedef struct {
-    char sep;        // Séparateur
-    int nbFields;    // Nombre de champs
-    char** fieldNames; // Tableau dynamique pour les noms de champs
+    char sep;
+    int nbFields;
+    char** fieldNames;
 } t_metadata;
 
 typedef struct {
-    t_node** slots;  // Table de hachage (tableau de listes chaînées)
-    int nbSlots;     // Nombre d'alvéoles
-    int nbTuples;    // Nombre total de tuples insérés
+    t_node** slots;
+    int nbSlots;
+    int nbTuples;
 } t_hashtable;
 
 typedef unsigned int (*hashFunction)(const char* key, int nbSlots);
@@ -41,7 +41,6 @@ void freeHashTable(t_hashtable* table, t_metadata* metadata);
 void saveHashTableToFile(t_hashtable* table, FILE* output, t_metadata* metadata);
 void afficherAide();
 
-// Fonction principale
 int main(int argc, char* argv[]) {
     if (argc == 2 && strcmp(argv[1], "-help") == 0) {
         afficherAide();
@@ -53,40 +52,37 @@ int main(int argc, char* argv[]) {
     int nbSlots = -1;
     int hashFunctionChoice = -1;
 
-    // Analyser les arguments
+    // Analyse des arguments
     for (int i = 1; i < argc; i++) {
         if (strncmp(argv[i], "-i", 2) == 0) {
-            inputFile = argv[i] + 2; // Nom du fichier d'entrée
+            inputFile = argv[i] + 2;
         } else if (strncmp(argv[i], "-o", 2) == 0) {
-            outputFile = argv[i] + 2; // Nom du fichier de sortie
+            outputFile = argv[i] + 2;
         } else if (strncmp(argv[i], "-s", 2) == 0) {
-            nbSlots = atoi(argv[i] + 2); // Nombre d'alvéoles
+            nbSlots = atoi(argv[i] + 2);
             if (nbSlots <= 0) {
                 fprintf(stderr, "Erreur : nombre d'alvéoles invalide.\n");
                 return EXIT_FAILURE;
             }
         } else if (strncmp(argv[i], "-h", 2) == 0) {
-            hashFunctionChoice = atoi(argv[i] + 2); // Choix de la fonction de hachage
+            hashFunctionChoice = atoi(argv[i] + 2);
             if (hashFunctionChoice < 1) {
                 fprintf(stderr, "Erreur : numéro de fonction de hachage invalide.\n");
                 return EXIT_FAILURE;
             }
-        } else if (strcmp(argv[i], "-help") == 0) {
-            afficherAide();
-            return 0;
         } else {
             fprintf(stderr, "Erreur : argument inconnu %s\n", argv[i]);
             return EXIT_FAILURE;
         }
     }
 
-    // Vérification des paramètres requis
+    //  Paramètres requis
     if (nbSlots == 0 || hashFunctionChoice == 0) {
         fprintf(stderr, "Erreur : les paramètres -s et -h sont obligatoires.\n");
         return EXIT_FAILURE;
     }
 
-    // Définir la fonction de hachage choisie
+    // Choix fonction de hachage
     hashFunction hashFunc = NULL;
     if (hashFunctionChoice == 1) {
         hashFunc = hashFunction1;
@@ -108,7 +104,7 @@ int main(int argc, char* argv[]) {
     t_hashtable* table = parseFileHash(input, &metadata, nbSlots, hashFunc);
     if (inputFile) fclose(input);
 
-    // Définir la sortie
+    // Définition sortie
     FILE* output = outputFile ? fopen(outputFile, "w") : stdout;
     if (outputFile && !output) {
         perror("Erreur d'ouverture du fichier de sortie");
@@ -119,7 +115,7 @@ int main(int argc, char* argv[]) {
     // Sauvegarde ou affichage de la table
     saveHashTableToFile(table, output, &metadata);
 
-    // Si un fichier de sortie a été utilisé, le fermer
+    // Fermer le fichier de sortie s'il est utilisé
     if (outputFile) fclose(output);
 
     // Libération de la mémoire
@@ -173,7 +169,7 @@ char* allocateField(const char* source) {
 // Analyse du fichier et remplissage de la table de hachage
 t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, hashFunction hashFunc) {    
     FILE* file = inputFile;
-    int isManualInput = (file == stdin); // Vérifier si l'entrée est manuelle
+    int isManualInput = (file == stdin);
 
     t_hashtable* table = malloc(sizeof(t_hashtable));
     assert(table != NULL);
@@ -182,12 +178,12 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
     table->nbSlots = nbSlots;
     table->nbTuples = 0;
 
-    metadata->sep = '\0';           // Séparateur non défini au départ
-    metadata->nbFields = 0;        // Nombre de champs non encore connu
-    metadata->fieldNames = NULL;   // Pas encore de noms de champs
+    metadata->sep = '\0';
+    metadata->nbFields = 0;
+    metadata->fieldNames = NULL;
 
     char* line;
-    int step = 0; // Étape de traitement (0 : séparateur, 1 : nbFields, 2 : noms des champs, 3+ : données)
+    int step = 0;
 
     while (1) {
         if (isManualInput) {
@@ -203,7 +199,7 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
         }
 
         line = readLine(file);
-        if (!line) break; // Fin du fichier ou ligne vide
+        if (!line) break;
 
         // Ignore les commentaires
         if (line[0] == '#' && strlen(line) > 1) {
@@ -267,7 +263,7 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
         }
 
         if (step >= 3) {
-            if (strlen(line) == 0) { // Ligne vide pour terminer l'entrée
+            if (strlen(line) == 0) {
                 free(line);
                 break;
             }
@@ -304,12 +300,12 @@ t_hashtable* parseFileHash(FILE* inputFile, t_metadata* metadata, int nbSlots, h
     return table;
 }
 
-// Insertion d'un tuple dans la table de hachage
+// Insertion d'un tuple dans la table
 void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_metadata* metadata, hashFunction hashFunc) {
-    unsigned int index = hashFunc(tuple->key, nbSlots);  // Correction ici
+    unsigned int index = hashFunc(tuple->key, nbSlots);
     t_node* current = table->slots[index];
 
-    // Vérifier si la clé existe déjà
+    // Vérifier si la clé existe
     while (current) {
         if (strcmp(current->data.key, tuple->key) == 0) {
             current->data.nbDefinitions++;
@@ -325,7 +321,7 @@ void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_me
         current = current->next;
     }
 
-    // Si la clé n'existe pas encore, créer un nouveau nœud
+    // Si la clé n'existe pas, créer un nouveau nœud
     t_node* newNode = malloc(sizeof(t_node));
     assert(newNode != NULL);
     newNode->data.key = allocateField(tuple->key);
@@ -347,7 +343,7 @@ void searchKeyHash(t_hashtable* table, t_metadata* metadata, const char* key, in
     unsigned int index = hashFunc(key, nbSlots);
     t_node* current = table->slots[index];
     int comparisons = 0;
-    int found = 0; // Indicateur si au moins une clé est trouvée
+    int found = 0;
 
     while (current) {
         comparisons++;
@@ -373,7 +369,7 @@ void searchKeyHash(t_hashtable* table, t_metadata* metadata, const char* key, in
     }
 }
 
-// Libération de la mémoire de la table de hachage
+// Libération de la mémoire
 void freeHashTable(t_hashtable* table, t_metadata* metadata) {
     for (int i = 0; i < table->nbSlots; i++) {
         t_node* current = table->slots[i];
@@ -400,18 +396,15 @@ void freeHashTable(t_hashtable* table, t_metadata* metadata) {
 }
 
 void saveHashTableToFile(t_hashtable* table, FILE* output, t_metadata* metadata) {
-    // Sauvegarder le séparateur
+    
     fprintf(output, "%c\n", metadata->sep);
 
-    // Sauvegarder le nombre de champs
     fprintf(output, "%d\n", metadata->nbFields);
 
-    // Sauvegarder les noms de champs
     for (int i = 0; i < metadata->nbFields; i++) {
         fprintf(output, "%s%c", metadata->fieldNames[i], (i == metadata->nbFields - 1) ? '\n' : metadata->sep);
     }
 
-    // Sauvegarder les tuples
     for (int i = 0; i < table->nbSlots; i++) {
         t_node* current = table->slots[i];
         while (current) {

@@ -3,11 +3,11 @@
 #include <string.h>
 #include <assert.h>
 
-// Définition des structures
+// Structures
 typedef struct {
-    char* key;           // Clé dynamique
-    char*** definitions; // Tableau dynamique de tableaux dynamiques pour les définitions
-    int nbDefinitions;   // Nombre d'occurrences du mot
+    char* key;
+    char*** definitions;
+    int nbDefinitions;
 } t_tuple;
 
 typedef struct node {
@@ -16,18 +16,17 @@ typedef struct node {
 } t_node;
 
 typedef struct {
-    char sep;        // Séparateur
-    int nbFields;    // Nombre de champs
-    char** fieldNames; // Tableau dynamique pour les noms de champs
+    char sep;
+    int nbFields;
+    char** fieldNames;
 } t_metadata;
 
 typedef struct {
-    t_node** slots;  // Table de hachage (tableau de listes chaînées)
-    int nbSlots;     // Nombre d'alvéoles
-    int nbTuples;    // Nombre total de tuples insérés
+    t_node** slots;
+    int nbSlots;
+    int nbTuples;
 } t_hashtable;
 
-// Prototypes
 // Prototypes
 char* readLine(FILE* file);
 char* allocateField(const char* source);
@@ -39,7 +38,6 @@ unsigned int hashFunction1(const char* key, int nbSlots);
 unsigned int hashFunction2(const char* key, int nbSlots);
 void freeHashTable(t_hashtable* table, t_metadata* metadata);
 
-// Fonction principale
 int main(int argc, char* argv[]) {
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <filename> <nbSlots> <hashFunctionChoice>\n", argv[0]);
@@ -137,23 +135,24 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
     table->nbSlots = nbSlots;
     table->nbTuples = 0;
 
-    metadata->sep = '\0';           // Séparateur non défini au départ
-    metadata->nbFields = 0;        // Nombre de champs non encore connu
-    metadata->fieldNames = NULL;   // Pas encore de noms de champs
+    metadata->sep = '\0';
+    metadata->nbFields = 0;
+    metadata->fieldNames = NULL;
 
     char* line;
-    int step = 0; // Étape de traitement (0 : séparateur, 1 : nbFields, 2 : noms des champs, 3+ : données)
+    int step = 0;
 
     while ((line = readLine(file)) != NULL) {
-        // Ignorer les lignes de commentaires (commençant par # mais contenant plus que le séparateur)
+
+        // Ignorer les commentaires
         if (line[0] == '#' && strlen(line) > 1) {
             free(line);
             continue;
         }
 
-        // Étape 0 : Détection du séparateur
+        // Séparateur
         if (step == 0) {
-            if (strlen(line) == 1) { // Une ligne avec un seul caractère
+            if (strlen(line) == 1) {
                 metadata->sep = line[0];
                 printf("Séparateur détecté : '%c'\n", metadata->sep);
                 free(line);
@@ -167,7 +166,7 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
             }
         }
 
-        // Étape 1 : Lecture du nombre de champs
+        // Nombre de champs
         if (step == 1) {
             metadata->nbFields = atoi(line);
             if (metadata->nbFields <= 0) {
@@ -187,7 +186,7 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
             continue;
         }
 
-        // Étape 2 : Lecture des noms des champs
+        // Noms des champs
         if (step == 2) {
             char* token = strtok(line, &metadata->sep);
             for (int i = 0; i < metadata->nbFields; i++) {
@@ -207,7 +206,7 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
             continue;
         }
 
-        // Étape 3+ : Lecture et insertion des données
+        // Lecture et insertion des données
         if (step >= 3) {
             t_tuple tuple;
             char* token = strtok(line, &metadata->sep);
@@ -241,7 +240,7 @@ t_hashtable* parseFileHash(const char* filename, t_metadata* metadata, int nbSlo
     return table;
 }
 
-// Insertion d'un tuple dans la table de hachage
+// Insertion d'un tuple dans la table
 void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_metadata* metadata, unsigned int (*hashFunc)(const char*, int)) {
     unsigned int index = hashFunc(tuple->key, nbSlots);
     t_node* current = table->slots[index];
@@ -262,7 +261,7 @@ void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_me
         current = current->next;
     }
 
-    // Si la clé n'existe pas encore, créer un nouveau nœud
+    // Si la clé n'existe pas, créer un nouveau nœud
     t_node* newNode = malloc(sizeof(t_node));
     assert(newNode != NULL);
     newNode->data.key = allocateField(tuple->key);
@@ -279,12 +278,12 @@ void insertTupleHash(t_hashtable* table, const t_tuple* tuple, int nbSlots, t_me
     table->nbTuples++;
 }
 
-// Recherche d'une clé dans la table de hachage
+// Recherche d'une clé
 void searchKeyHash(t_hashtable* table, t_metadata* metadata, const char* key, int nbSlots, unsigned int (*hashFunc)(const char*, int)) {
     unsigned int index = hashFunc(key, nbSlots);
     t_node* current = table->slots[index];
     int comparisons = 0;
-    int found = 0; // Indicateur si au moins une clé est trouvée
+    int found = 0;
 
     while (current) {
         comparisons++;
@@ -310,7 +309,7 @@ void searchKeyHash(t_hashtable* table, t_metadata* metadata, const char* key, in
     }
 }
 
-// Libération de la mémoire de la table de hachage
+// Libération de la mémoire
 void freeHashTable(t_hashtable* table, t_metadata* metadata) {
     for (int i = 0; i < table->nbSlots; i++) {
         t_node* current = table->slots[i];
